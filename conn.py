@@ -29,6 +29,8 @@ class GFTP(FTP):
         :param args:
         :return:
         """
+        base_path = self.pwd()
+
         cmd = 'LIST'
         line_list = []
         if args[-1:] and type(args[-1]) != type(''):
@@ -42,7 +44,7 @@ class GFTP(FTP):
         for line in line_list:
             result = re.findall(r'[a-z-]+ +\d+ +\w+ +\w+ +\d+ +\w+ +\d+ +[0-9:]+ +(.+)', line)[0]
             if result and result not in ['.', '..']:
-                out_list.append(result.strip())
+                out_list.append(os.path.join(base_path, result.strip()).replace('\\', '/'))
         return out_list
 
     def show_file(self) -> list:
@@ -51,7 +53,9 @@ class GFTP(FTP):
 
         :return:
         """
-        return self.nlst()
+        base_path = self.pwd()
+
+        return [os.path.join(base_path, file).replace('\\', '/') for file in self.nlst()]
 
     def show_folder(self) -> list:
         """
@@ -59,7 +63,11 @@ class GFTP(FTP):
 
         :return:
         """
-        return list(set(self.show_dir()).difference(set(self.show_file())))
+        base_path = self.pwd()
+
+        folders = list(set(self.show_dir()).difference(set(self.show_file())))
+
+        return [os.path.join(base_path, folder).replace('\\', '/') for folder in folders]
 
     def iter_dir(self, dir_path: str, only_file: bool = False) -> str:
         """
