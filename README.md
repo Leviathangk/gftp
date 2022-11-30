@@ -26,7 +26,7 @@ pip install gftp
 这里就介绍下 iter_dir
 
 ```
-from gftp import GFTP
+from gftp import FTPConn
 
 ftp = FTPConn(**连接配置)
 for f in ftp.connection.iter_dir('/'):
@@ -38,7 +38,7 @@ for f in ftp.connection.iter_dir('/'):
 创建连接用
 
 ```
-from gftp import GFTP
+from gftp import FTPConn
 
 ftp = FTPConn(**连接配置)
 ftp.connection.pwd()    # 通过 connection 使用 FTP 命令
@@ -53,6 +53,8 @@ ftp.close()             # 关闭连接，会自动回收，关不关无所谓
 只提一个参数：keep_structure 会在 save_path 的基础上，保留 ftp 目录结构
 
 ```
+from gftp import FTPDownloader
+
 downloader = FTPDownloader(**连接配置, save_path='')
 downloader.download_file()
 downloader.download_list()
