@@ -59,6 +59,7 @@ class FTPDownloader:
         self._record = {}
         self._queue_conn = queue.Queue()
         self._download_pool = ThreadPoolExecutor(self._threads)
+        self._callback_pool = ThreadPoolExecutor(self._threads)
         self._new_connection()
 
     def _new_connection(self, count: int = None) -> None:
@@ -96,7 +97,7 @@ class FTPDownloader:
         except:
             self._new_connection(count=1)
 
-    def download_file(self, ftp_path: str, callback: Callable = None) -> bool:
+    def download_file(self, ftp_path: str, callback: Callable = None) -> dict:
         """
         下载指定文件
 
@@ -118,29 +119,29 @@ class FTPDownloader:
             self._record[ftp_path] = {
                 'success': False,
                 'failed_times': 0,
-                'ftp_path': ftp_path,
                 'file_download_path': file_download_path,
             }
 
         # 尝试下载
         try:
-            status = self._downloader(ftp_path=ftp_path, file_download_path=file_download_path, file_name=file_name)
-            threading.Thread(target=callback, args=(True, ftp_path, file_download_path)).start()
+            self._downloader(ftp_path=ftp_path, file_download_path=file_download_path, file_name=file_name)
+            self._callback_pool.submit(callback, args=(True, ftp_path, file_download_path))
             self._record[ftp_path]['success'] = True
 
-            return status
         except:
             traceback.print_exc()
 
             # 下载错误记录
             if self._record[ftp_path]['failed_times'] < self._retry:
                 self._record[ftp_path]['failed_times'] += 1
+                logger.warning(f'下载错误，即将重试：{ftp_path}')
 
                 return self.download_file(ftp_path=ftp_path, callback=callback)
             else:
-                threading.Thread(target=callback, args=(False, ftp_path, file_download_path)).start()
+                logger.error(f'下载重试达到最大次数，已终止下载：{ftp_path}')
+                self._callback_pool.submit(callback, args=(False, ftp_path, file_download_path))
 
-                return False
+        return self._record
 
     def download_list(self, ftp_path_list: list, callback: Callable = None) -> dict:
         """
@@ -153,7 +154,7 @@ class FTPDownloader:
         for ftp_path in ftp_path_list:
             self._download_pool.submit(self.download_file, ftp_path, callback)
 
-        self._download_pool.shutdown()
+        self._pool_shutdown()
 
         return self._record
 
@@ -177,7 +178,7 @@ class FTPDownloader:
         finally:
             self._recycle_connection(conn)
 
-        self._download_pool.shutdown()
+        self._pool_shutdown()
 
         return self._record
 
@@ -215,6 +216,15 @@ class FTPDownloader:
         finally:
             self._recycle_connection(conn=conn)
 
+    def _pool_shutdown(self):
+        """
+        等待线程执行完毕
+
+        :return:
+        """
+        self._download_pool.shutdown()
+        self._callback_pool.shutdown()
+
     @staticmethod
     def callback(success: bool, ftp_path: str, file_download_path: str):
         """
@@ -226,9 +236,9 @@ class FTPDownloader:
         :return:
         """
         if success:
-            logger.warning(f'下载错误，即将重试：{ftp_path}')
+            logger.debug(f'下载成功：{ftp_path}')
         else:
-            logger.error(f'下载重试达到最大次数，已终止下载：{ftp_path}')
+            logger.debug(f'下载失败：{ftp_path}')
 
     def __del__(self):
-        self._download_pool.shutdown()
+        self._pool_shutdown()

@@ -50,13 +50,16 @@ ftp.close()             # 关闭连接，会自动回收，关不关无所谓
 
 下载文件、文件列表、文件夹  
 可以多线程，即创建多个连接  
-只提一个参数：keep_structure 会在 save_path 的基础上，保留 ftp 目录结构
+介绍两个参数：
+
+- 类实例参数 keep_structure 会在 save_path 的基础上，保留 ftp 目录结构
+- download 参数 callback 是线程，线程数量和类实例的 threads 数量一致
 
 ```
 from gftp import FTPDownloader
 
 downloader = FTPDownloader(**连接配置, save_path='')
-downloader.download_file()
-downloader.download_list()
-downloader.download_dir()
+downloader.download_file(ftp_path='xx', callback=xx)
+downloader.download_list(ftp_path_list=['xx'], callback=xx)
+downloader.download_dir(dir_path='xx', callback=xx)
 ```
