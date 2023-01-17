@@ -131,6 +131,7 @@ class FTPDownloader:
         except Exception as e:
             if "No such file or directory" in e.args[0]:
                 logger.error("ftp 不存在该文件：{}", ftp_path)
+                self._callback_pool.submit(callback, args=(False, ftp_path, file_download_path))
                 return self._record
 
             traceback.print_exc()
