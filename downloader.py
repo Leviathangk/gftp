@@ -125,13 +125,13 @@ class FTPDownloader:
         # 尝试下载
         try:
             self._downloader(ftp_path=ftp_path, file_download_path=file_download_path, file_name=file_name)
-            self._callback_pool.submit(callback, args=(True, ftp_path, file_download_path))
+            self._callback_pool.submit(callback, True, ftp_path, file_download_path)
             self._record[ftp_path]['success'] = True
 
         except Exception as e:
             if "No such file or directory" in e.args[0]:
                 logger.error("ftp 不存在该文件：{}", ftp_path)
-                self._callback_pool.submit(callback, args=(False, ftp_path, file_download_path))
+                self._callback_pool.submit(callback, False, ftp_path, file_download_path)
                 return self._record
 
             traceback.print_exc()
@@ -144,7 +144,7 @@ class FTPDownloader:
                 return self.download_file(ftp_path=ftp_path, callback=callback)
             else:
                 logger.error(f'下载重试达到最大次数，已终止下载：{ftp_path}')
-                self._callback_pool.submit(callback, args=(False, ftp_path, file_download_path))
+                self._callback_pool.submit(callback, False, ftp_path, file_download_path)
 
         return self._record
 
